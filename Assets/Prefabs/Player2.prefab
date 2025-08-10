@@ -191,12 +191,12 @@ MonoBehaviour:
   m_ActionEvents:
   - m_PersistentCalls:
       m_Calls: []
-    m_ActionId: 3839f13f-34ea-4b8d-ae85-1bde9209156e
+    m_ActionId: e82727b4-1475-4eac-b8cf-eea7af75a7d0
     m_ActionName: 'Player 1/Move[/XInputControllerWindows/leftStick]'
   - m_PersistentCalls:
       m_Calls: []
-    m_ActionId: 6fd99743-85e2-42f3-941e-2450cf83f6a2
-    m_ActionName: 'Player 1/Jump[/XInputControllerWindows/buttonSouth,/Keyboard/space]'
+    m_ActionId: 09538d7b-eef5-497d-8bcb-54b24ec5cf83
+    m_ActionName: 'Player 1/Jump[/XInputControllerWindows/buttonSouth]'
   - m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 5441367889996776623}
@@ -211,8 +211,8 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-    m_ActionId: 401ea7b6-ec55-4d47-abc2-adfe1c69e910
-    m_ActionName: 'Player 2/Move[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d]'
+    m_ActionId: 1e97b1c8-f633-45e4-8fbf-4c17bd5e6d76
+    m_ActionName: 'Player 2/Move[/XInputControllerWindows/leftStick]'
   - m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 5441367889996776623}
@@ -227,8 +227,16 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-    m_ActionId: f30c4482-3393-4477-a3f1-b8abf32e699e
-    m_ActionName: 'Player 2/Jump[/Keyboard/space]'
+    m_ActionId: 1b9b3f0f-9449-45e7-b925-b6990a791daf
+    m_ActionName: 'Player 2/Jump[/XInputControllerWindows/buttonSouth]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: baaac125-70bc-4221-aee1-cb5750051e49
+    m_ActionName: 'Player 1/Join[/XInputControllerWindows/start]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: ef2c5fc3-05ae-4db1-951b-20e0a15d80bb
+    m_ActionName: 'Player 2/Join[/XInputControllerWindows/start]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player 2

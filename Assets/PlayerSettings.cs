@@ -90,21 +90,30 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
     ""maps"": [
         {
             ""name"": ""Player 1"",
-            ""id"": ""b6c36a16-0010-451d-9991-24b680d253ec"",
+            ""id"": ""2ba65954-3727-4d7c-bdfb-f792c9573e8c"",
             ""actions"": [
                 {
                     ""name"": ""Move"",
-                    ""type"": ""PassThrough"",
-                    ""id"": ""3839f13f-34ea-4b8d-ae85-1bde9209156e"",
+                    ""type"": ""Value"",
+                    ""id"": ""e82727b4-1475-4eac-b8cf-eea7af75a7d0"",
                     ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Jump"",
+                    ""type"": ""Button"",
+                    ""id"": ""09538d7b-eef5-497d-8bcb-54b24ec5cf83"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Jump"",
+                    ""name"": ""Join"",
                     ""type"": ""Button"",
-                    ""id"": ""6fd99743-85e2-42f3-941e-2450cf83f6a2"",
+                    ""id"": ""baaac125-70bc-4221-aee1-cb5750051e49"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -114,7 +123,7 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
             ""bindings"": [
                 {
                     ""name"": """",
-                    ""id"": ""3b9507bb-242e-4380-a036-2cd32a6011a2"",
+                    ""id"": ""607769d5-cdd3-4b0e-8f2b-c2eb3fa02f65"",
                     ""path"": ""<Gamepad>/leftStick"",
                     ""interactions"": """",
                     ""processors"": """",
@@ -125,7 +134,7 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""0760b2d3-0754-45a0-a98b-1cf6aef62708"",
+                    ""id"": ""cdf70a5b-4b0e-4ef9-8020-62d7c9a0c8ac"",
                     ""path"": ""<Gamepad>/buttonSouth"",
                     ""interactions"": """",
                     ""processors"": """",
@@ -136,12 +145,12 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""6c84f7ef-6194-444d-9fa6-84f264d189ae"",
-                    ""path"": ""<Keyboard>/space"",
+                    ""id"": ""6d057c90-8d10-4525-ae8b-160c04363ac2"",
+                    ""path"": ""<Gamepad>/start"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Jump"",
+                    ""action"": ""Join"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -149,12 +158,12 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
         },
         {
             ""name"": ""Player 2"",
-            ""id"": ""e7e78bf1-25cb-4e05-9d98-ff765479512c"",
+            ""id"": ""85c459e0-31dd-485e-88de-2642b10e26a7"",
             ""actions"": [
                 {
                     ""name"": ""Move"",
                     ""type"": ""Value"",
-                    ""id"": ""401ea7b6-ec55-4d47-abc2-adfe1c69e910"",
+                    ""id"": ""1e97b1c8-f633-45e4-8fbf-4c17bd5e6d76"",
                     ""expectedControlType"": ""Vector2"",
                     ""processors"": """",
                     ""interactions"": """",
@@ -163,7 +172,16 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
                 {
                     ""name"": ""Jump"",
                     ""type"": ""Button"",
-                    ""id"": ""f30c4482-3393-4477-a3f1-b8abf32e699e"",
+                    ""id"": ""1b9b3f0f-9449-45e7-b925-b6990a791daf"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Join"",
+                    ""type"": ""Button"",
+                    ""id"": ""ef2c5fc3-05ae-4db1-951b-20e0a15d80bb"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -172,68 +190,35 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
             ],
             ""bindings"": [
                 {
-                    ""name"": ""Keybpard"",
-                    ""id"": ""6cb63f52-f493-47cb-b3a9-10e81fe4fa29"",
-                    ""path"": ""2DVector"",
+                    ""name"": """",
+                    ""id"": ""a252cf57-cebc-4f7e-a439-c105b7525494"",
+                    ""path"": ""<Gamepad>/leftStick"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Move"",
-                    ""isComposite"": true,
+                    ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
-                    ""name"": ""up"",
-                    ""id"": ""86fb80a7-c640-4996-b7e9-4896cf3e8f06"",
-                    ""path"": ""<Keyboard>/w"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""down"",
-                    ""id"": ""f01abff3-f8b4-4baa-91b1-39e19364891a"",
-                    ""path"": ""<Keyboard>/s"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""left"",
-                    ""id"": ""733a4b58-36c0-41de-aaac-f2cddf81c53c"",
-                    ""path"": ""<Keyboard>/a"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""right"",
-                    ""id"": ""283aef2e-88fb-4b25-a7fb-e7054bf81f1d"",
-                    ""path"": ""<Keyboard>/d"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
                     ""name"": """",
-                    ""id"": ""aadcb481-90af-4c77-8c8d-b3d898ad8c5c"",
-                    ""path"": ""<Keyboard>/space"",
+                    ""id"": ""9aebb804-4c8f-41fc-9e1d-494122599408"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Jump"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f48fefe8-ec3f-429c-9683-5bb1091dc0b5"",
+                    ""path"": ""<Gamepad>/start"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Join"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -263,10 +248,12 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
         m_Player1 = asset.FindActionMap("Player 1", throwIfNotFound: true);
         m_Player1_Move = m_Player1.FindAction("Move", throwIfNotFound: true);
         m_Player1_Jump = m_Player1.FindAction("Jump", throwIfNotFound: true);
+        m_Player1_Join = m_Player1.FindAction("Join", throwIfNotFound: true);
         // Player 2
         m_Player2 = asset.FindActionMap("Player 2", throwIfNotFound: true);
         m_Player2_Move = m_Player2.FindAction("Move", throwIfNotFound: true);
         m_Player2_Jump = m_Player2.FindAction("Jump", throwIfNotFound: true);
+        m_Player2_Join = m_Player2.FindAction("Join", throwIfNotFound: true);
     }
 
     ~@PlayerSettings()
@@ -350,6 +337,7 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
     private List<IPlayer1Actions> m_Player1ActionsCallbackInterfaces = new List<IPlayer1Actions>();
     private readonly InputAction m_Player1_Move;
     private readonly InputAction m_Player1_Jump;
+    private readonly InputAction m_Player1_Join;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player 1".
     /// </summary>
@@ -369,6 +357,10 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player1/Jump".
         /// </summary>
         public InputAction @Jump => m_Wrapper.m_Player1_Jump;
+        /// <summary>
+        /// Provides access to the underlying input action "Player1/Join".
+        /// </summary>
+        public InputAction @Join => m_Wrapper.m_Player1_Join;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -401,6 +393,9 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
             @Jump.started += instance.OnJump;
             @Jump.performed += instance.OnJump;
             @Jump.canceled += instance.OnJump;
+            @Join.started += instance.OnJoin;
+            @Join.performed += instance.OnJoin;
+            @Join.canceled += instance.OnJoin;
         }
 
         /// <summary>
@@ -418,6 +413,9 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
             @Jump.started -= instance.OnJump;
             @Jump.performed -= instance.OnJump;
             @Jump.canceled -= instance.OnJump;
+            @Join.started -= instance.OnJoin;
+            @Join.performed -= instance.OnJoin;
+            @Join.canceled -= instance.OnJoin;
         }
 
         /// <summary>
@@ -457,6 +455,7 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
     private List<IPlayer2Actions> m_Player2ActionsCallbackInterfaces = new List<IPlayer2Actions>();
     private readonly InputAction m_Player2_Move;
     private readonly InputAction m_Player2_Jump;
+    private readonly InputAction m_Player2_Join;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player 2".
     /// </summary>
@@ -476,6 +475,10 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player2/Jump".
         /// </summary>
         public InputAction @Jump => m_Wrapper.m_Player2_Jump;
+        /// <summary>
+        /// Provides access to the underlying input action "Player2/Join".
+        /// </summary>
+        public InputAction @Join => m_Wrapper.m_Player2_Join;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -508,6 +511,9 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
             @Jump.started += instance.OnJump;
             @Jump.performed += instance.OnJump;
             @Jump.canceled += instance.OnJump;
+            @Join.started += instance.OnJoin;
+            @Join.performed += instance.OnJoin;
+            @Join.canceled += instance.OnJoin;
         }
 
         /// <summary>
@@ -525,6 +531,9 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
             @Jump.started -= instance.OnJump;
             @Jump.performed -= instance.OnJump;
             @Jump.canceled -= instance.OnJump;
+            @Join.started -= instance.OnJoin;
+            @Join.performed -= instance.OnJoin;
+            @Join.canceled -= instance.OnJoin;
         }
 
         /// <summary>
@@ -592,6 +601,13 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnJump(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Join" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnJoin(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Player 2" which allows adding and removing callbacks.
@@ -614,5 +630,12 @@ public partial class @PlayerSettings: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnJump(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Join" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnJoin(InputAction.CallbackContext context);
     }
 }
