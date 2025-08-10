@@ -3,51 +3,28 @@ using UnityEngine.InputSystem;
 
 public class Movement : MonoBehaviour
 {
-    public float moveSpeed = 5f;
-    public float jumpForce = 7f;
-
-    private Rigidbody2D rb;
+    [SerializeField] float moveSpeed = 5f;
     private Vector2 moveInput;
-    private bool jumpPressed;
-    private bool isGrounded;
 
-    private void Awake()
+    private void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
+        // Give each player a random color
+        GetComponent<SpriteRenderer>().color = new Color(
+            Random.Range(0f, 1f),
+            Random.Range(0f, 1f),
+            Random.Range(0f, 1f)
+        );
     }
 
-    // Called by PlayerInput component when Move action happens
-    public void OnMove(InputAction.CallbackContext context)
+    // Called by the new Input System when Move is performed
+    public void OnMove(InputValue input)
     {
-        moveInput = context.ReadValue<Vector2>();
+        moveInput = input.Get<Vector2>();
     }
 
-    // Called by PlayerInput component when Jump action happens
-    public void OnJump(InputAction.CallbackContext context)
+    void Update()
     {
-        if (context.performed && isGrounded)
-        {
-            jumpPressed = true;
-        }
-    }
-
-    private void FixedUpdate()
-    {
-        rb.linearVelocity = new Vector2(moveInput.x * moveSpeed, rb.linearVelocity.y);
-
-        if (jumpPressed)
-        {
-            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-            jumpPressed = false;
-            isGrounded = false;
-        }
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
-        {
-            isGrounded = true;
-        }
+        Vector3 move = new Vector3(moveInput.x, moveInput.y, 0f);
+        transform.Translate(move * moveSpeed * Time.deltaTime, Space.World);
     }
 }
