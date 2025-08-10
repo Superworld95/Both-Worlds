@@ -149,9 +149,9 @@ public class Player2Controller : MonoBehaviour
     {
         float horizontal = moveInput.x;
 
-        Vector2 velocity = rb.velocity;
+        Vector2 velocity = rb.linearVelocity;
         velocity.x = horizontal * moveSpeed * Time.deltaTime;
-        rb.velocity = velocity;
+        rb.linearVelocity = velocity;
 
         // Flip sprite if needed
         if (horizontal > 0 && !facingRight) Flip();
@@ -244,7 +244,7 @@ public class Player2Controller : MonoBehaviour
     {
         isAlive = false;
         spriteRenderer.color = Color.gray;
-        rb.velocity = Vector2.zero;
+        rb.linearVelocity = Vector2.zero;
     }
 
     public void ResetPlayer()
@@ -254,7 +254,7 @@ public class Player2Controller : MonoBehaviour
         isAlive = true;
         spriteRenderer.color = playerColor;
         transform.position = new Vector3(100, 100, 0);
-        rb.velocity = Vector2.zero;
+        rb.linearVelocity = Vector2.zero;
         isGrounded = false;
         facingRight = true;
         isAttacking = false;
