@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 5038495809505767012}
   - component: {fileID: 5441367889996776623}
   m_Layer: 0
-  m_Name: Player
+  m_Name: Player2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -81,7 +81,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.2821431, g: 0.5773585, b: 0.5464841, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -190,6 +190,14 @@ MonoBehaviour:
       m_Calls: []
   m_ActionEvents:
   - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 3839f13f-34ea-4b8d-ae85-1bde9209156e
+    m_ActionName: 'Player 1/Move[/XInputControllerWindows/leftStick]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 6fd99743-85e2-42f3-941e-2450cf83f6a2
+    m_ActionName: 'Player 1/Jump[/XInputControllerWindows/buttonSouth,/Keyboard/space]'
+  - m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 5441367889996776623}
         m_TargetAssemblyTypeName: Movement, Assembly-CSharp
@@ -203,8 +211,8 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-    m_ActionId: 3839f13f-34ea-4b8d-ae85-1bde9209156e
-    m_ActionName: 'Player 1/Move[/XInputControllerWindows/leftStick]'
+    m_ActionId: 401ea7b6-ec55-4d47-abc2-adfe1c69e910
+    m_ActionName: 'Player 2/Move[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d]'
   - m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 5441367889996776623}
@@ -219,19 +227,11 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-    m_ActionId: 6fd99743-85e2-42f3-941e-2450cf83f6a2
-    m_ActionName: 'Player 1/Jump[/XInputControllerWindows/buttonSouth,/Keyboard/space]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 401ea7b6-ec55-4d47-abc2-adfe1c69e910
-    m_ActionName: 'Player 2/Move[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d]'
-  - m_PersistentCalls:
-      m_Calls: []
     m_ActionId: f30c4482-3393-4477-a3f1-b8abf32e699e
     m_ActionName: 'Player 2/Jump[/Keyboard/space]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
-  m_DefaultActionMap: Player 1
+  m_DefaultActionMap: Player 2
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
 --- !u!114 &5441367889996776623
