@@ -16,6 +16,11 @@ public class Movement : MonoBehaviour
     // prevents repeated jumps while holding the button
     private bool jumpConsumed = false;
 
+    private bool isWallSliding;
+    private float wallSlidingSpeed = 2f;
+    [SerializeField] private Transform wallCheck;
+    [SerializeField] private LayerMask wallLayer;
+
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -27,7 +32,6 @@ public class Movement : MonoBehaviour
             Random.Range(0f, 1f)
         );
     }
-
     // Called by the new Input System when Move is performed
     public void OnMove(InputValue input)
     {
@@ -58,11 +62,36 @@ public class Movement : MonoBehaviour
         }
     }
 
+    private bool isWalled()
+    {
+        return Physics2D.OverlapCircle(wallCheck.position, 0.2f, wallLayer); 
+    }
+
+    private void wallSlide()
+    {
+        if(isWalled() && !isGrounded && moveInput.x != 0f)
+        {
+            isWallSliding = true;
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, Mathf.Clamp(rb.linearVelocity.y, -wallSlidingSpeed, float.MaxValue));
+        }
+        else
+        {
+            isWallSliding = false;
+        }
+    }
+
     private void FixedUpdate()
     {
         // Horizontal movement (keeps vertical velocity)
         Vector2 moveVelocity = new Vector2(moveInput.x * moveSpeed, rb.linearVelocity.y);
         rb.linearVelocity = moveVelocity;
+
+        WallSide();
+    }
+
+    private void WallSide()
+    {
+
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
