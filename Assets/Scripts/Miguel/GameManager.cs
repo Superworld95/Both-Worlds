@@ -34,6 +34,11 @@ public class GameManager : MonoBehaviour
     public GameObject powerupPrefab;
     public GameObject trapPrefab;
 
+    [Header("Enemy Type Data (ScriptableObjects)")]
+    public EnemyTypeData basicEnemyData;
+    public EnemyTypeData fastEnemyData;
+    public EnemyTypeData heavyEnemyData;
+
     public static GameManager Instance { get; private set; }
 
     private float gameTime = 0f;
@@ -77,6 +82,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Starts the adventure mode, initializes game state, and spawns objects.
+    /// </summary>
     public void StartAdventure()
     {
         Debug.Log("GameManager: Starting adventure mode...");
@@ -96,6 +104,9 @@ public class GameManager : MonoBehaviour
         Debug.Log($"GameManager: Adventure started! {enemies.Count} enemies spawned, game is now active.");
     }
 
+    /// <summary>
+    /// Updates the game timer and triggers end if time limit is reached.
+    /// </summary>
     private void UpdateGameTimer()
     {
         gameTime += Time.deltaTime;
@@ -106,6 +117,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Checks various win conditions like finish line reached, all enemies dead, or players dead.
+    /// </summary>
     private void CheckWinConditions()
     {
         if (player1 != null && player1.transform.position.x >= finishLineX && player1.IsAlive())
@@ -136,6 +150,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Determines the winner based on score if the time runs out.
+    /// </summary>
+    /// <returns>Player object or null if no winner</returns>
     private object DetermineWinnerByScore()
     {
         bool player1Alive = player1 != null && player1.IsAlive();
@@ -157,6 +175,10 @@ public class GameManager : MonoBehaviour
         return player1Progress >= player2Progress ? player1 : player2;
     }
 
+    /// <summary>
+    /// Returns the player with the most kills.
+    /// </summary>
+    /// <returns>Player1Controller or Player2Controller</returns>
     private object GetTopKiller()
     {
         if (player1 == null && player2 == null) return null;
@@ -166,6 +188,11 @@ public class GameManager : MonoBehaviour
         return player1.GetKills() >= player2.GetKills() ? player1 : player2;
     }
 
+    /// <summary>
+    /// Ends the game and displays winner and reason.
+    /// </summary>
+    /// <param name="winner">Winner player object or null</param>
+    /// <param name="condition">Win condition type</param>
     private void EndGame(object winner, WinCondition condition)
     {
         gameActive = false;
@@ -182,6 +209,9 @@ public class GameManager : MonoBehaviour
             winnerText.text = winMessage;
     }
 
+    /// <summary>
+    /// Generates a descriptive win message based on condition.
+    /// </summary>
     private string GetWinMessage(object winner, WinCondition condition)
     {
         string playerName = GetPlayerName(winner);
@@ -199,6 +229,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Helper method to get player name string from player object.
+    /// </summary>
     private string GetPlayerName(object player)
     {
         if (player is Player1Controller p1) return p1.GetPlayerName();
@@ -206,9 +239,14 @@ public class GameManager : MonoBehaviour
         return "Unknown Player";
     }
 
+    /// <summary>
+    /// Spawns enemy instances and assigns them random EnemyTypeData ScriptableObjects.
+    /// </summary>
     private void SpawnEnemies()
     {
         enemies.Clear();
+
+        EnemyTypeData[] enemyTypes = { basicEnemyData, fastEnemyData, heavyEnemyData };
 
         for (int i = 0; i < enemyCount; i++)
         {
@@ -216,8 +254,9 @@ public class GameManager : MonoBehaviour
             GameObject enemyObj = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
             EnemyAI enemy = enemyObj.GetComponent<EnemyAI>();
 
-            EnemyAI.EnemyType[] types = { EnemyAI.EnemyType.Basic, EnemyAI.EnemyType.Fast, EnemyAI.EnemyType.Heavy };
-            enemy.SetEnemyType(types[Random.Range(0, types.Length)]);
+            // Pick a random EnemyTypeData ScriptableObject and assign it
+            EnemyTypeData randomType = enemyTypes[Random.Range(0, enemyTypes.Length)];
+            enemy.SetEnemyTypeData(randomType);
 
             enemies.Add(enemy);
         }
@@ -225,6 +264,9 @@ public class GameManager : MonoBehaviour
         Debug.Log($"GameManager: Spawned {enemies.Count} enemies for the adventure");
     }
 
+    /// <summary>
+    /// Spawns static and moving platforms randomly throughout the level.
+    /// </summary>
     private void SpawnPlatforms()
     {
         for (int i = 0; i < platformCount; i++)
@@ -248,6 +290,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Spawns powerups randomly within the level.
+    /// </summary>
     private void SpawnPowerups()
     {
         for (int i = 0; i < 5; i++)
@@ -261,6 +306,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Resets game state and UI to initial conditions.
+    /// </summary>
     private void InitializeGame()
     {
         if (gameOverPanel != null)
@@ -274,6 +322,9 @@ public class GameManager : MonoBehaviour
         Debug.Log("GameManager: Initialized to clean state - ready for adventure start");
     }
 
+    /// <summary>
+    /// Updates UI elements showing time, player health, and kills.
+    /// </summary>
     private void UpdateUI()
     {
         float remainingTime = Mathf.Max(0, gameTimeLimit - gameTime);
@@ -295,17 +346,26 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Reloads the current scene to restart the game.
+    /// </summary>
     public void RestartGame()
     {
         UnityEngine.SceneManagement.SceneManager.LoadScene(
             UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
     }
 
+    /// <summary>
+    /// Adds a kill to the specified player (used when enemies die).
+    /// </summary>
     public void AddEnemyKill(object player)
     {
         if (player is Player1Controller p1) p1.AddKill();
         if (player is Player2Controller p2) p2.AddKill();
     }
 
+    /// <summary>
+    /// Returns whether the game is currently active.
+    /// </summary>
     public bool IsGameActive() => gameActive;
 }
