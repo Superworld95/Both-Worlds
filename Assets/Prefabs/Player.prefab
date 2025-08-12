@@ -46,7 +46,11 @@ GameObject:
   - component: {fileID: 1691163893439031319}
   - component: {fileID: 3933807804634795174}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   - component: {fileID: 994738506640549869}
+=======
+  - component: {fileID: 2642944795587785330}
+>>>>>>> Stashed changes
 =======
   - component: {fileID: 2642944795587785330}
 >>>>>>> Stashed changes
@@ -260,9 +264,14 @@ MonoBehaviour:
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 4940778392948736955}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 --- !u!96 &994738506640549869
 TrailRenderer:
   serializedVersion: 3
+=======
+--- !u!114 &2642944795587785330
+MonoBehaviour:
+>>>>>>> Stashed changes
 =======
 --- !u!114 &2642944795587785330
 MonoBehaviour:
@@ -272,6 +281,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1411896259046472283}
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
   m_Enabled: 1
   m_CastShadows: 1
@@ -382,6 +392,8 @@ MonoBehaviour:
   m_Emitting: 0
   m_ApplyActiveColorSpace: 1
 =======
+=======
+>>>>>>> Stashed changes
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 28977eaa8d8b4d7479297fd29024f41f, type: 3}
@@ -398,6 +410,9 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 4294967295
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 --- !u!1 &3138042714472605274
 GameObject:
