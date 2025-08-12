@@ -4,8 +4,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "DoubleJumpPowerup", menuName = "Scriptable Objects/DoubleJumpPowerup")]
 public class DoubleJumpPowerup : Powerup
 {
-    public float duration = 10f;
-
     public override void Apply(IPlayerController player)
     {
         player.EnableDoubleJump(true);

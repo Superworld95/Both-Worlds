@@ -3,45 +3,54 @@ using UnityEngine;
 /// <summary>
 /// AI controller for enemy entities featuring intelligent combat behavior and patrol systems.
 /// Enemies attack players when in range and patrol designated areas when alone.
-/// Supports three enemy types: Basic, Fast, and Heavy with different stats and behaviors.
+/// Enemy stats and behavior are defined by EnemyTypeData ScriptableObjects.
 /// </summary>
 public class EnemyAI : MonoBehaviour
 {
-    // Different enemy types with varying stats and behaviors
-    public enum EnemyType { Basic, Fast, Heavy }
-
     [Header("Enemy Settings")]
-    public EnemyType enemyType = EnemyType.Basic; // Type determines stats and behavior
-    public float attackRange = 40f; // Distance at which enemy will attack players
-    public int attackDamage = 15; // Damage dealt to players per attack
-    public float patrolRange = 100f; // Distance enemy will patrol from spawn point
-    public Color enemyColor = Color.red; // Visual color (changes based on enemy type)
-
-    [Header("Visual")]
-    public GameObject swordEffect; // Visual effect prefab for enemy sword attacks
-
-    //Component references
-    private Rigidbody2D rb; // Physics body for movement
-    private SpriteRenderer spriteRenderer; // Visual sprite component
-    private BoxCollider2D boxCollider; // Collision detection component
-
-    // Enemy state variables
-    private int health; // Current health (set by enemy type)
-    private int maxHealth; // Maximum health (set by enemy type)
-    private bool isAlive = true; // Whether enemy is alive
-    private bool isAttacking = false; // Whether currently attacking
-    private float lastAttackTime = 0f; // Time of last attack for cooldown
-    private float attackCooldown; // Time between attacks (set by enemy type)
-    private float moveSpeed; // Movement speed (set by enemy type)
-    private float patrolStartX; // Starting X position for patrol behavior
-    private int patrolDirection = 1; // Current patrol direction (1 = right, -1 = left)
-
-    // Player references for AI targeting
-    private Player1Controller player1; // Reference to Player 1 for targeting
-    private Player2Controller player2; // Reference to Player 2 for targeting
+    /// <summary>
+    /// Reference to ScriptableObject holding stats and visual info for this enemy type
+    /// </summary>
+    public EnemyTypeData enemyTypeData;
 
     /// <summary>
-    /// Initialize enemy components, find players, and configure enemy type
+    /// Distance at which enemy will attack players
+    /// </summary>
+    public float attackRange = 40f;
+
+    [Header("Visual")]
+    /// <summary>
+    /// Visual effect prefab for enemy sword attacks
+    /// </summary>
+    public GameObject swordEffect;
+
+    // Component references
+    private Rigidbody2D rb;                 // Physics body for movement
+    private SpriteRenderer spriteRenderer; // Visual sprite component
+    private BoxCollider2D boxCollider;     // Collision detection component
+
+    // Enemy state variables
+    private int health;                     // Current health (set by enemyTypeData)
+    private int maxHealth;                  // Maximum health (set by enemyTypeData)
+    private bool isAlive = true;            // Whether enemy is alive
+    private bool isAttacking = false;       // Whether currently attacking
+    private float lastAttackTime = 0f;      // Time of last attack for cooldown
+    private float attackCooldown;           // Time between attacks (set by enemyTypeData)
+    private float moveSpeed;                // Movement speed (set by enemyTypeData)
+    private float patrolRange;              // Distance enemy will patrol from spawn point (set by enemyTypeData)
+    private int attackDamage;               // Damage dealt to players per attack (set by enemyTypeData)
+    private Color enemyColor;               // Visual color (set by enemyTypeData)
+
+    // Patrol state
+    private float patrolStartX;             // Starting X position for patrol behavior
+    private int patrolDirection = 1;       // Current patrol direction (1 = right, -1 = left)
+
+    // Player references for AI targeting
+    private Player1Controller player1;     // Reference to Player 1 for targeting
+    private Player2Controller player2;     // Reference to Player 2 for targeting
+
+    /// <summary>
+    /// Initialize enemy components, find players, and configure enemy stats from ScriptableObject
     /// </summary>
     private void Start()
     {
@@ -53,12 +62,18 @@ public class EnemyAI : MonoBehaviour
         // Find player controllers for AI targeting
         player1 = FindObjectOfType<Player1Controller>();
         player2 = FindObjectOfType<Player2Controller>();
+
         patrolStartX = transform.position.x; // Remember spawn position for patrol
 
-        // Configure stats based on enemy type and set visual appearance
-        SetEnemyType(enemyType);
-        if (spriteRenderer != null)
-            spriteRenderer.color = enemyColor;
+        // Configure stats based on ScriptableObject data and set visual appearance
+        if (enemyTypeData != null)
+        {
+            ApplyEnemyTypeData(enemyTypeData);
+        }
+        else
+        {
+            Debug.LogWarning($"EnemyAI ({gameObject.name}): EnemyTypeData not assigned!");
+        }
     }
 
     /// <summary>
@@ -67,57 +82,48 @@ public class EnemyAI : MonoBehaviour
     /// </summary>
     private void Update()
     {
-        // Null check for GameManager Instance
-        if (GameManager.Instance == null || !GameManager.Instance.IsGameActive() || !isAlive) return;
+        if (GameManager.Instance == null || !GameManager.Instance.IsGameActive() || !isAlive)
+            return;
 
-        UpdateAI(); // Handle combat and patrol behavior
-        UpdateVisuals(); // Update health-based color changes
+        UpdateAI();       // Handle combat and patrol behavior
+        UpdateVisuals();  // Update health-based color changes
     }
 
     /// <summary>
-    /// Configure enemy stats and appearance based on enemy type
-    /// Basic: Balanced stats, red color
-    /// Fast: Low health, high speed/attack rate, orange color
-    /// Heavy: High health, slow speed/attack rate, purple color
+    /// Assign EnemyTypeData ScriptableObject and update stats and visuals accordingly
     /// </summary>
-    public void SetEnemyType(EnemyType type)
+    /// <param name="data">EnemyTypeData ScriptableObject</param>
+    public void SetEnemyTypeData(EnemyTypeData data)
     {
-        enemyType = type;
+        enemyTypeData = data;
 
-        switch (type)
+        if (enemyTypeData != null)
         {
-            case EnemyType.Basic:
-                maxHealth = 50;
-                health = maxHealth;
-                attackCooldown = 1.5f;
-                moveSpeed = 20f;
-                patrolRange = 100f;
-                enemyColor = Color.red;
-                break;
-
-            case EnemyType.Fast:
-                maxHealth = 30;
-                health = maxHealth;
-                attackCooldown = 1f;
-                moveSpeed = 30f;
-                patrolRange = 150f;
-                enemyColor = new Color(1f, 0.67f, 0.27f);
-                break;
-
-            case EnemyType.Heavy:
-                maxHealth = 80;
-                health = maxHealth;
-                attackCooldown = 2f;
-                moveSpeed = 15f;
-                patrolRange = 80f;
-                enemyColor = new Color(0.67f, 0.27f, 1f);
-                break;
+            ApplyEnemyTypeData(enemyTypeData);
         }
+    }
+
+    /// <summary>
+    /// Helper to apply data from EnemyTypeData to internal variables and visuals
+    /// </summary>
+    private void ApplyEnemyTypeData(EnemyTypeData data)
+    {
+        maxHealth = data.maxHealth;
+        health = maxHealth;
+        attackCooldown = data.attackCooldown;
+        moveSpeed = data.moveSpeed;
+        patrolRange = data.patrolRange;
+        attackDamage = data.attackDamage;
+        enemyColor = data.enemyColor;
 
         if (spriteRenderer != null)
             spriteRenderer.color = enemyColor;
     }
 
+    /// <summary>
+    /// Core AI logic:
+    /// Finds closest alive player, attacks if in range with cooldown, else patrols
+    /// </summary>
     private void UpdateAI()
     {
         // Find closest player
@@ -144,29 +150,33 @@ public class EnemyAI : MonoBehaviour
             }
         }
 
-        // Reset attack state
+        // Reset attack state before deciding action
         isAttacking = false;
 
-        // Combat behavior
+        // Combat behavior: attack if player is in range and cooldown elapsed
         if (closestPlayer != null && closestDistance <= attackRange)
         {
             if (Time.time - lastAttackTime >= attackCooldown)
             {
                 Attack(closestPlayer);
             }
-            return;
+            return; // Skip patrol when attacking or in attack cooldown
         }
 
-        // Patrol behavior
+        // Patrol behavior when no player is in attack range
         Patrol();
     }
 
+    /// <summary>
+    /// Attack the target player: show sword effect, deal damage, and set cooldown
+    /// </summary>
+    /// <param name="target">Player to attack</param>
     private void Attack(Component target)
     {
         isAttacking = true;
         lastAttackTime = Time.time;
 
-        // Show sword effect
+        // Show sword effect with yellow color
         if (swordEffect != null)
         {
             GameObject effect = Instantiate(swordEffect, transform.position, Quaternion.identity);
@@ -174,18 +184,25 @@ public class EnemyAI : MonoBehaviour
             Destroy(effect, 0.3f);
         }
 
-        // Deal damage
+        // Deal damage depending on player type
         if (target is Player1Controller p1) p1.TakeDamage(attackDamage);
         if (target is Player2Controller p2) p2.TakeDamage(attackDamage);
 
+        // Reset attack flag shortly after attack animation
         Invoke(nameof(ResetAttack), 0.2f);
     }
 
+    /// <summary>
+    /// Reset attack state to allow next attack
+    /// </summary>
     private void ResetAttack()
     {
         isAttacking = false;
     }
 
+    /// <summary>
+    /// Patrol horizontally back and forth within patrolRange around spawn point
+    /// </summary>
     private void Patrol()
     {
         float distanceFromStart = Mathf.Abs(transform.position.x - patrolStartX);
@@ -196,17 +213,21 @@ public class EnemyAI : MonoBehaviour
             patrolDirection *= -1;
         }
 
-        // Apply horizontal movement
+        // Apply horizontal movement using Rigidbody2D velocity
         Vector2 velocity = rb.linearVelocity;
         velocity.x = patrolDirection * moveSpeed;
         rb.linearVelocity = velocity;
 
-        // Flip sprite
+        // Flip sprite to face movement direction
         Vector3 scale = transform.localScale;
         scale.x = Mathf.Abs(scale.x) * patrolDirection;
         transform.localScale = scale;
     }
 
+    /// <summary>
+    /// Called when enemy takes damage: reduce health and check for death
+    /// </summary>
+    /// <param name="damage">Damage amount</param>
     public void TakeDamage(int damage)
     {
         if (!isAlive) return;
@@ -219,6 +240,9 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Handle enemy death: disable movement, change color, and notify audio manager
+    /// </summary>
     private void Die()
     {
         isAlive = false;
@@ -232,6 +256,9 @@ public class EnemyAI : MonoBehaviour
             AudioManager.Instance.OnEnemyDeath();
     }
 
+    /// <summary>
+    /// Update enemy sprite color based on current health percentage for visual feedback
+    /// </summary>
     private void UpdateVisuals()
     {
         if (!isAlive) return;
@@ -248,11 +275,12 @@ public class EnemyAI : MonoBehaviour
     public int GetHealth() => health;
     public int GetMaxHealth() => maxHealth;
     public bool IsAttacking() => isAttacking;
-    public EnemyType GetEnemyType() => enemyType;
 
+    /// <summary>
+    /// Handle collision with players: deal contact damage if not currently attacking
+    /// </summary>
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        // Handle collision with players (contact damage)
         Player1Controller p1 = collision.gameObject.GetComponent<Player1Controller>();
         Player2Controller p2 = collision.gameObject.GetComponent<Player2Controller>();
 
@@ -266,13 +294,16 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Draw debug gizmos in editor showing attack and patrol ranges
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
-        // Draw attack range
+        // Draw attack range in red
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
 
-        // Draw patrol range
+        // Draw patrol range as blue horizontal line
         Gizmos.color = Color.blue;
         Vector3 patrolStart = new Vector3(patrolStartX != 0 ? patrolStartX : transform.position.x, transform.position.y, transform.position.z);
         Gizmos.DrawLine(patrolStart + Vector3.left * patrolRange, patrolStart + Vector3.right * patrolRange);
