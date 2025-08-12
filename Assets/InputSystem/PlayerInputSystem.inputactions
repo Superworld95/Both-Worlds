@@ -25,9 +25,18 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "WallCling",
+                    "name": "WallClimb",
                     "type": "Button",
                     "id": "6240189b-02e3-4a28-8074-5eb972db9304",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Dash",
+                    "type": "Button",
+                    "id": "7229740a-f216-40d2-add9-5a03fdffe0bb",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -130,7 +139,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Gamepad",
-                    "action": "WallCling",
+                    "action": "WallClimb",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -141,7 +150,29 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard",
-                    "action": "WallCling",
+                    "action": "WallClimb",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1764415a-eb01-47a7-920c-0259be36d94e",
+                    "path": "<Gamepad>/buttonEast",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Dash",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "28d15ec1-2cc9-4d97-abf4-35570c009d9c",
+                    "path": "<Keyboard>/shift",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard",
+                    "action": "Dash",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
