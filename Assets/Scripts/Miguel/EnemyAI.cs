@@ -20,7 +20,7 @@ public class EnemyAI : MonoBehaviour
     [Header("Visual")]
     public GameObject swordEffect; // Visual effect prefab for enemy sword attacks
 
-    // Component references
+    //Component references
     private Rigidbody2D rb; // Physics body for movement
     private SpriteRenderer spriteRenderer; // Visual sprite component
     private BoxCollider2D boxCollider; // Collision detection component
