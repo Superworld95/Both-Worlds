@@ -1,4 +1,4 @@
-using UnityEngine;
+/*using UnityEngine;
 
 /// <summary>
 /// Moving platform controller that creates dynamic platforming challenges.
@@ -127,4 +127,4 @@ public class MovingPlatform : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireCube(end, Vector3.one * 0.5f);
     }
-}
+}*/

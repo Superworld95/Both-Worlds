@@ -1,432 +1,316 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Player 2 controller handling movement, combat, and input for the second player.
-/// Uses Arrow Keys + Enter controls through Unity's New Input System.
-/// Features sword-based combat, health management, and character progression.
+/// Player 2 controller handling movement, jumping, attacking with sword, and health management.
+/// Uses Unity's New Input System with Arrow keys and Enter for attack.
 /// </summary>
 public class Player2Controller : MonoBehaviour, IPlayerController
 {
-    [Header("Player 2 Settings")]
-    public string playerName = "Player 2"; // Display name for UI and victory messages
-    public PlayerCharacter characterType = PlayerCharacter.Magical; // Theme: Magical vs Modern
+    [Header("Player Settings")]
+    public string playerName = "Player 2"; // Display name for UI and GameManager
+    public int maxHealth = 100;             // Maximum health value
+    public float moveSpeed = 5f;            // Horizontal movement speed
+    public float jumpForce = 12f;           // Upward force applied on jump
 
-    [Header("Movement")]
-    public float moveSpeed = 200f; // Horizontal movement speed in units per second
-    public float jumpForce = 400f; // Upward force applied when jumping
-    public LayerMask groundLayerMask; // Layers treated as ground for jumping
+    [Header("Attack Settings")]
+    public int attackDamage = 20;           // Damage dealt per attack
+    public float attackCooldown = 0.5f;     // Minimum time between attacks in seconds
+    public Transform attackPoint;           // Position from where attack range is calculated
+    public float attackRange = 1.0f;        // Radius of the attack hit area
+    public LayerMask enemyLayer;            // LayerMask to detect enemies in attack range
 
-    [Header("Combat")]
-    public float attackRange = 50f; // Radius of sword attack
-    public int attackDamage = 25; // Base damage dealt per hit
-    public float attackCooldown = 1f; // Time between attacks in seconds
-
-    [Header("Visual")]
-    public Color playerColor = Color.magenta; // Visual representation color
-    public GameObject swordEffect; // Optional particle or slash effect prefab
-
-    [Header("Input Actions")]
-    public InputActionReference moveAction; // Arrow Keys movement input
-    public InputActionReference jumpAction; // Up Arrow jump input
-    public InputActionReference attackAction; // Enter key attack input
-
-    // Component references
     private Rigidbody2D rb;
+    private Animator animator;
     private SpriteRenderer spriteRenderer;
-    private BoxCollider2D boxCollider;
 
-    // State variables
-    private int health = 100;
+    private int currentHealth;
     private int kills = 0;
-    private bool isAlive = true;
     private bool isGrounded = false;
-    private bool facingRight = true;
     private float lastAttackTime = 0f;
-    private bool isAttacking = false;
 
-    // Input handling
     private Vector2 moveInput;
 
-    // Base stats to restore after powerup ends
-    private float baseMoveSpeed;
-    private int baseAttackDamage;
-
-    // Powerup modifiers
-    private float speedBoostMultiplier = 1f;
-    private float attackBoostMultiplier = 1f;
+    // Double jump support
     private bool doubleJumpEnabled = false;
-    private int jumpCount = 0;
+    private bool canDoubleJump = false;
 
-    // Character theme types for visual and thematic differences
-    public enum PlayerCharacter { Modern, Magical }
+    // Speed boost support
+    private float speedBoostMultiplier = 1f;
+    private float speedBoostTimer = 0f;
+
+    // Attack boost support
+    private float attackBoostMultiplier = 1f;
+    private float attackBoostTimer = 0f;
 
     /// <summary>
-    /// Initialize Player 2 components and input setup
+    /// Initialization of components and starting health.
     /// </summary>
-    private void Start()
+    private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
-        boxCollider = GetComponent<BoxCollider2D>();
 
-        // Initial setup
-        spriteRenderer.color = playerColor;
-        transform.position = new Vector3(100, 100, 0); // Player 2 starts at x=100
-
-        baseMoveSpeed = moveSpeed;
-        baseAttackDamage = attackDamage;
-
-        EnableInputActions();
-    }
-
-    private void OnEnable() => EnableInputActions();
-    private void OnDisable() => DisableInputActions();
-
-    private void EnableInputActions()
-    {
-        if (moveAction != null)
-        {
-            moveAction.action.Enable();
-            moveAction.action.performed += OnMove;
-            moveAction.action.canceled += OnMove;
-        }
-
-        if (jumpAction != null)
-        {
-            jumpAction.action.Enable();
-            jumpAction.action.performed += OnJump;
-        }
-
-        if (attackAction != null)
-        {
-            attackAction.action.Enable();
-            attackAction.action.performed += OnAttack;
-        }
-    }
-
-    private void DisableInputActions()
-    {
-        if (moveAction != null)
-        {
-            moveAction.action.performed -= OnMove;
-            moveAction.action.canceled -= OnMove;
-            moveAction.action.Disable();
-        }
-
-        if (jumpAction != null)
-        {
-            jumpAction.action.performed -= OnJump;
-            jumpAction.action.Disable();
-        }
-
-        if (attackAction != null)
-        {
-            attackAction.action.performed -= OnAttack;
-            attackAction.action.Disable();
-        }
+        currentHealth = maxHealth;
     }
 
     /// <summary>
-    /// Main update loop for movement, grounded check, and visuals
+    /// Called every frame to update movement, animation, and powerup timers.
     /// </summary>
     private void Update()
     {
-        if (GameManager.Instance == null || !GameManager.Instance.IsGameActive() || !isAlive)
-            return;
-
         HandleMovement();
-        CheckGrounded();
-        UpdateVisuals();
-
-        // Reset jump count when grounded to allow double jump
-        if (isGrounded)
-            jumpCount = 0;
+        HandleAnimations();
+        UpdatePowerupTimers();
     }
 
-    /// <summary>
-    /// Handle player movement based on horizontal input and apply speed boost multiplier
-    /// </summary>
-    private void HandleMovement()
-    {
-        float horizontal = moveInput.x;
-
-        Vector2 velocity = rb.linearVelocity;
-        velocity.x = horizontal * moveSpeed * speedBoostMultiplier * Time.deltaTime;
-        rb.linearVelocity = velocity;
-
-        // Flip sprite if needed
-        if (horizontal > 0 && !facingRight) Flip();
-        else if (horizontal < 0 && facingRight) Flip();
-    }
+    #region Movement and Input Handling
 
     /// <summary>
-    /// Called when movement input performed or canceled
+    /// Called by input system when Move action is triggered.
+    /// Stores movement input vector.
     /// </summary>
-    private void OnMove(InputAction.CallbackContext context)
+    public void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
     }
 
     /// <summary>
-    /// Called on jump input, allows jump or double jump
+    /// Called by input system when Jump action is triggered.
+    /// Applies vertical velocity if grounded or double jump if enabled.
     /// </summary>
-    private void OnJump(InputAction.CallbackContext context)
+    public void OnJump(InputAction.CallbackContext context)
     {
-        if (context.performed && isAlive)
+        if (context.performed)
         {
-            if (isGrounded || (doubleJumpEnabled && jumpCount < 1))
+            if (isGrounded)
             {
-                Jump();
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                isGrounded = false;
+                canDoubleJump = doubleJumpEnabled;
+            }
+            else if (canDoubleJump)
+            {
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                canDoubleJump = false;
             }
         }
     }
 
     /// <summary>
-    /// Apply upward force to jump and track jump count
+    /// Called by input system when Attack action is triggered.
+    /// Starts attack if cooldown allows.
     /// </summary>
-    private void Jump()
+    public void OnAttack(InputAction.CallbackContext context)
     {
-        rb.AddForce(Vector2.up * jumpForce);
-        isGrounded = false;
-        jumpCount++;
-
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.OnPlayerJump();
-    }
-
-    /// <summary>
-    /// Called on attack input, triggers attack if cooldown elapsed
-    /// </summary>
-    private void OnAttack(InputAction.CallbackContext context)
-    {
-        if (context.performed && Time.time - lastAttackTime >= attackCooldown && isAlive)
+        if (context.performed && Time.time - lastAttackTime >= attackCooldown)
         {
             Attack();
+            lastAttackTime = Time.time;
         }
     }
 
     /// <summary>
-    /// Executes sword attack logic: damage enemies in range, play effects, cooldown management
+    /// Applies horizontal movement velocity and flips sprite accordingly.
+    /// </summary>
+    private void HandleMovement()
+    {
+        float horizontal = moveInput.x;
+        float currentSpeed = moveSpeed * speedBoostMultiplier;
+        rb.linearVelocity = new Vector2(horizontal * currentSpeed, rb.linearVelocity.y);
+
+        if (horizontal > 0.1f)
+            spriteRenderer.flipX = false;
+        else if (horizontal < -0.1f)
+            spriteRenderer.flipX = true;
+    }
+
+    /// <summary>
+    /// Updates animator parameters for speed and grounded state.
+    /// </summary>
+    private void HandleAnimations()
+    {
+        animator.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
+        animator.SetBool("IsGrounded", isGrounded);
+    }
+
+    /// <summary>
+    /// Updates powerup timers for speed and attack boosts and resets multipliers when expired.
+    /// </summary>
+    private void UpdatePowerupTimers()
+    {
+        if (speedBoostTimer > 0)
+        {
+            speedBoostTimer -= Time.deltaTime;
+            if (speedBoostTimer <= 0)
+            {
+                speedBoostMultiplier = 1f;
+            }
+        }
+
+        if (attackBoostTimer > 0)
+        {
+            attackBoostTimer -= Time.deltaTime;
+            if (attackBoostTimer <= 0)
+            {
+                attackBoostMultiplier = 1f;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Triggers attack animation and applies damage to enemies in range, factoring attack boost.
     /// </summary>
     private void Attack()
     {
-        lastAttackTime = Time.time;
-        isAttacking = true;
+        animator.SetTrigger("Attack");
 
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.OnPlayerAttack();
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
 
-        if (swordEffect != null)
+        foreach (Collider2D enemyCollider in hitEnemies)
         {
-            GameObject effect = Instantiate(swordEffect, transform.position, Quaternion.identity);
-            Destroy(effect, 0.3f);
-        }
-
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, attackRange);
-        foreach (var hit in hitEnemies)
-        {
-            EnemyAI enemy = hit.GetComponent<EnemyAI>();
+            EnemyAI enemy = enemyCollider.GetComponent<EnemyAI>();
             if (enemy != null && enemy.IsAlive())
             {
-                enemy.TakeDamage(Mathf.RoundToInt(attackDamage * attackBoostMultiplier));
-                if (!enemy.IsAlive())
-                {
-                    kills++;
-                    GameManager.Instance.AddEnemyKill(this);
-                }
+                int totalDamage = Mathf.RoundToInt(attackDamage * attackBoostMultiplier);
+                enemy.TakeDamage(totalDamage, this);
             }
         }
-
-        Invoke(nameof(ResetAttack), 0.2f);
     }
 
     /// <summary>
-    /// Reset attack state after attack animation/cooldown
-    /// </summary>
-    private void ResetAttack()
-    {
-        isAttacking = false;
-    }
-
-    /// <summary>
-    /// Checks if player is touching ground using overlap box at feet
-    /// </summary>
-    private void CheckGrounded()
-    {
-        Vector2 boxSize = new Vector2(boxCollider.size.x * 0.8f, 0.1f);
-        Vector2 boxCenter = (Vector2)transform.position + boxCollider.offset + Vector2.down * (boxCollider.size.y / 2 + 0.05f);
-
-        isGrounded = Physics2D.OverlapBox(boxCenter, boxSize, 0f, groundLayerMask);
-    }
-
-    /// <summary>
-    /// Flip sprite horizontally when changing direction
-    /// </summary>
-    private void Flip()
-    {
-        facingRight = !facingRight;
-        Vector3 scale = transform.localScale;
-        scale.x *= -1;
-        transform.localScale = scale;
-    }
-
-    /// <summary>
-    /// Update player color based on health percentage (red to player color)
-    /// </summary>
-    private void UpdateVisuals()
-    {
-        float healthPercent = health / 100f;
-        Color color = Color.Lerp(Color.red, playerColor, healthPercent);
-        spriteRenderer.color = color;
-    }
-
-    /// <summary>
-    /// Receive damage and handle death if health drops to zero
-    /// </summary>
-    public void TakeDamage(int damage)
-    {
-        if (!isAlive) return;
-
-        health = Mathf.Max(0, health - damage);
-
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.OnPlayerDamage();
-
-        if (health <= 0)
-            Die();
-    }
-
-    /// <summary>
-    /// Handles player death state and visual change
-    /// </summary>
-    private void Die()
-    {
-        isAlive = false;
-        spriteRenderer.color = Color.gray;
-        rb.linearVelocity = Vector2.zero;
-    }
-
-    /// <summary>
-    /// Reset player state for new game or respawn
-    /// </summary>
-    public void ResetPlayer()
-    {
-        health = 100;
-        kills = 0;
-        isAlive = true;
-        spriteRenderer.color = playerColor;
-        transform.position = new Vector3(100, 100, 0);
-        rb.linearVelocity = Vector2.zero;
-        isGrounded = false;
-        facingRight = true;
-        isAttacking = false;
-        speedBoostMultiplier = 1f;
-        attackBoostMultiplier = 1f;
-        moveSpeed = baseMoveSpeed;
-        attackDamage = baseAttackDamage;
-        doubleJumpEnabled = false;
-        jumpCount = 0;
-    }
-
-    public void AddKill() => kills++;
-
-    // Public accessors for GameManager, UI, and powerup systems
-    public bool IsAttacking() => isAttacking;
-    public bool IsAlive() => isAlive;
-    public int GetPlayerId() => 2;
-    public int GetHealth() => health;
-    public int GetKills() => kills;
-    public string GetPlayerName() => playerName;
-
-    /// <summary>
-    /// Collision handler for ground detection and traps
-    /// </summary>
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Platform"))
-            isGrounded = true;
-
-        if (collision.gameObject.CompareTag("Trap"))
-            TakeDamage(20);
-    }
-
-    /// <summary>
-    /// Powerup collection trigger
-    /// </summary>
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Powerup"))
-        {
-            PowerupPickup powerup = other.GetComponent<PowerupPickup>();
-            if (powerup != null)
-                powerup.powerup.Apply(this);
-        }
-    }
-
-    /// <summary>
-    /// Draw attack range and ground check area in editor
+    /// Draws the attack range sphere in the editor for debugging.
     /// </summary>
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
-
-        if (boxCollider != null)
+        if (attackPoint != null)
         {
-            Gizmos.color = Color.green;
-            Vector2 boxSize = new Vector2(boxCollider.size.x * 0.8f, 0.1f);
-            Vector2 boxCenter = (Vector2)transform.position + boxCollider.offset + Vector2.down * (boxCollider.size.y / 2 + 0.05f);
-            Gizmos.DrawWireCube(boxCenter, boxSize);
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
         }
     }
 
-    //
-    // IPlayerController Interface Implementation for powerups
-    //
-
-    public void Heal(int amount)
+    /// <summary>
+    /// Checks collision with ground to update grounded status.
+    /// </summary>
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        health = Mathf.Min(100, health + amount);
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isGrounded = true;
+        }
     }
 
-    public void SetSpeedBoost(float multiplier, float duration)
+    #endregion
+
+    #region Health and Damage Management
+
+    /// <summary>
+    /// Applies damage to player health.
+    /// </summary>
+    public void TakeDamage(int damage)
     {
-        StopCoroutine(nameof(SpeedBoostRoutine));
-        StartCoroutine(SpeedBoostRoutine(multiplier, duration));
+        currentHealth -= damage;
+        if (currentHealth < 0) currentHealth = 0;
+
+        if (currentHealth == 0)
+        {
+            Die();
+        }
     }
 
-    private IEnumerator SpeedBoostRoutine(float multiplier, float duration)
+    /// <summary>
+    /// Handles player death state.
+    /// </summary>
+    private void Die()
     {
-        speedBoostMultiplier = multiplier;
-        yield return new WaitForSeconds(duration);
-        speedBoostMultiplier = 1f;
+        Debug.Log($"{playerName} died!");
+        enabled = false;
     }
+
+    /// <summary>
+    /// Returns if player is alive.
+    /// </summary>
+    public bool IsAlive()
+    {
+        return currentHealth > 0;
+    }
+
+    /// <summary>
+    /// Gets current health value.
+    /// </summary>
+    public int GetHealth() => currentHealth;
+
+    #endregion
+
+    #region Kill Tracking
+
+    /// <summary>
+    /// Increment kill count.
+    /// </summary>
+    public void AddKill()
+    {
+        kills++;
+    }
+
+    /// <summary>
+    /// Returns kill count.
+    /// </summary>
+    public int GetKills()
+    {
+        return kills;
+    }
+
+    /// <summary>
+    /// Returns player display name.
+    /// </summary>
+    public string GetPlayerName()
+    {
+        return playerName;
+    }
+
+    /// <summary>
+    /// Resets health, kills and re-enables player.
+    /// </summary>
+    public void ResetPlayer()
+    {
+        currentHealth = maxHealth;
+        kills = 0;
+        enabled = true;
+        //Resets player position to start position (assumes initial position stored)
+        transform.position = Vector3.zero; // Change Vector3.zero to desired start position if needed
+    }
+
+    #endregion
+
+    #region IPlayerController Implementation
 
     public void EnableDoubleJump(bool enabled)
     {
         doubleJumpEnabled = enabled;
         if (!enabled)
-            jumpCount = 0;
+            canDoubleJump = false;
+    }
+
+    public void SetSpeedBoost(float multiplier, float duration)
+    {
+        speedBoostMultiplier = multiplier;
+        speedBoostTimer = duration;
     }
 
     public void SetAttackBoost(float multiplier, float duration)
     {
-        StopCoroutine(nameof(AttackBoostRoutine));
-        StartCoroutine(AttackBoostRoutine(multiplier, duration));
-    }
-
-    private IEnumerator AttackBoostRoutine(float multiplier, float duration)
-    {
         attackBoostMultiplier = multiplier;
-        yield return new WaitForSeconds(duration);
-        attackBoostMultiplier = 1f;
+        attackBoostTimer = duration;
     }
 
-    // We override StartCoroutine so interface calls use MonoBehaviour's coroutine method
-    public new Coroutine StartCoroutine(IEnumerator routine)
+    public void Heal(int amount)
     {
-        return base.StartCoroutine(routine);
+        currentHealth += amount;
+        if (currentHealth > maxHealth)
+            currentHealth = maxHealth;
     }
+
+    #endregion
 }

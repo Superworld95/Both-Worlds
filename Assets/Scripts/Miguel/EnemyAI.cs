@@ -1,311 +1,247 @@
 using UnityEngine;
 
 /// <summary>
-/// AI controller for enemy entities featuring intelligent combat behavior and patrol systems.
-/// Enemies attack players when in range and patrol designated areas when alone.
-/// Enemy stats and behavior are defined by EnemyTypeData ScriptableObjects.
+/// Controls enemy movement, detection, attacking, health, and animations using EnemyTypeData.
+/// Attach to enemy prefab with SpriteRenderer, Animator, and Collider2D.
 /// </summary>
+[RequireComponent(typeof(SpriteRenderer))]
+[RequireComponent(typeof(Animator))]
 public class EnemyAI : MonoBehaviour
 {
-    [Header("Enemy Settings")]
-    /// <summary>
-    /// Reference to ScriptableObject holding stats and visual info for this enemy type
-    /// </summary>
-    public EnemyTypeData enemyTypeData;
+    [Header("ScriptableObject Data")]
+    public EnemyTypeData enemyData; // Stats & settings from ScriptableObject
 
-    /// <summary>
-    /// Distance at which enemy will attack players
-    /// </summary>
-    public float attackRange = 40f;
+    private int currentHealth;
+    private float attackCooldownTimer;
+    private SpriteRenderer spriteRenderer;
+    private Animator animator;
 
-    [Header("Visual")]
-    /// <summary>
-    /// Visual effect prefab for enemy sword attacks
-    /// </summary>
-    public GameObject swordEffect;
+    private Vector3 startPos;
+    private bool movingRight = true;
+    private bool isDead = false;
 
-    // Component references
-    private Rigidbody2D rb;                 // Physics body for movement
-    private SpriteRenderer spriteRenderer; // Visual sprite component
-    private BoxCollider2D boxCollider;     // Collision detection component
+    private Transform detectedPlayer; // Reference to detected player
 
-    // Enemy state variables
-    private int health;                     // Current health (set by enemyTypeData)
-    private int maxHealth;                  // Maximum health (set by enemyTypeData)
-    private bool isAlive = true;            // Whether enemy is alive
-    private bool isAttacking = false;       // Whether currently attacking
-    private float lastAttackTime = 0f;      // Time of last attack for cooldown
-    private float attackCooldown;           // Time between attacks (set by enemyTypeData)
-    private float moveSpeed;                // Movement speed (set by enemyTypeData)
-    private float patrolRange;              // Distance enemy will patrol from spawn point (set by enemyTypeData)
-    private int attackDamage;               // Damage dealt to players per attack (set by enemyTypeData)
-    private Color enemyColor;               // Visual color (set by enemyTypeData)
-
-    // Patrol state
-    private float patrolStartX;             // Starting X position for patrol behavior
-    private int patrolDirection = 1;       // Current patrol direction (1 = right, -1 = left)
-
-    // Player references for AI targeting
-    private Player1Controller player1;     // Reference to Player 1 for targeting
-    private Player2Controller player2;     // Reference to Player 2 for targeting
-
-    /// <summary>
-    /// Initialize enemy components, find players, and configure enemy stats from ScriptableObject
-    /// </summary>
     private void Start()
     {
-        // Get required components
-        rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
-        boxCollider = GetComponent<BoxCollider2D>();
+        animator = GetComponent<Animator>();
 
-        // Find player controllers for AI targeting
-        player1 = FindObjectOfType<Player1Controller>();
-        player2 = FindObjectOfType<Player2Controller>();
+        InitializeEnemy();
+    }
 
-        patrolStartX = transform.position.x; // Remember spawn position for patrol
-
-        // Configure stats based on ScriptableObject data and set visual appearance
-        if (enemyTypeData != null)
+    /// <summary>
+    /// Initializes the enemy stats and visuals based on enemyData.
+    /// </summary>
+    private void InitializeEnemy()
+    {
+        if (enemyData != null)
         {
-            ApplyEnemyTypeData(enemyTypeData);
+            currentHealth = enemyData.maxHealth;
+            spriteRenderer.color = enemyData.enemyColor;
+            startPos = transform.position;
+
+            Debug.Log($"{enemyData.enemyName} spawned with {currentHealth} HP, Speed: {enemyData.moveSpeed}, Damage: {enemyData.attackDamage}");
         }
         else
         {
-            Debug.LogWarning($"EnemyAI ({gameObject.name}): EnemyTypeData not assigned!");
+            Debug.LogError($"{name}: EnemyData not assigned!");
         }
     }
 
-    /// <summary>
-    /// Main AI update loop - handles behavior and visual updates
-    /// Only runs when game is active and enemy is alive
-    /// </summary>
     private void Update()
     {
-        if (GameManager.Instance == null || !GameManager.Instance.IsGameActive() || !isAlive)
-            return;
+        if (isDead) return;
 
-        UpdateAI();       // Handle combat and patrol behavior
-        UpdateVisuals();  // Update health-based color changes
-    }
+        HandleAttackCooldown();
+        DetectPlayer();
 
-    /// <summary>
-    /// Assign EnemyTypeData ScriptableObject and update stats and visuals accordingly
-    /// </summary>
-    /// <param name="data">EnemyTypeData ScriptableObject</param>
-    public void SetEnemyTypeData(EnemyTypeData data)
-    {
-        enemyTypeData = data;
-
-        if (enemyTypeData != null)
+        if (detectedPlayer != null)
         {
-            ApplyEnemyTypeData(enemyTypeData);
-        }
-    }
-
-    /// <summary>
-    /// Helper to apply data from EnemyTypeData to internal variables and visuals
-    /// </summary>
-    private void ApplyEnemyTypeData(EnemyTypeData data)
-    {
-        maxHealth = data.maxHealth;
-        health = maxHealth;
-        attackCooldown = data.attackCooldown;
-        moveSpeed = data.moveSpeed;
-        patrolRange = data.patrolRange;
-        attackDamage = data.attackDamage;
-        enemyColor = data.enemyColor;
-
-        if (spriteRenderer != null)
-            spriteRenderer.color = enemyColor;
-    }
-
-    /// <summary>
-    /// Core AI logic:
-    /// Finds closest alive player, attacks if in range with cooldown, else patrols
-    /// </summary>
-    private void UpdateAI()
-    {
-        // Find closest player
-        Component closestPlayer = null;
-        float closestDistance = Mathf.Infinity;
-
-        if (player1 != null && player1.IsAlive())
-        {
-            float dist = Vector2.Distance(transform.position, player1.transform.position);
-            if (dist < closestDistance)
+            float distance = Vector2.Distance(transform.position, detectedPlayer.position);
+            if (distance <= enemyData.attackRange && attackCooldownTimer <= 0)
             {
-                closestDistance = dist;
-                closestPlayer = player1;
+                Attack();
+            }
+            else
+            {
+                ChasePlayer();
             }
         }
-
-        if (player2 != null && player2.IsAlive())
+        else
         {
-            float dist = Vector2.Distance(transform.position, player2.transform.position);
-            if (dist < closestDistance)
-            {
-                closestDistance = dist;
-                closestPlayer = player2;
-            }
+            Patrol();
         }
 
-        // Reset attack state before deciding action
-        isAttacking = false;
-
-        // Combat behavior: attack if player is in range and cooldown elapsed
-        if (closestPlayer != null && closestDistance <= attackRange)
-        {
-            if (Time.time - lastAttackTime >= attackCooldown)
-            {
-                Attack(closestPlayer);
-            }
-            return; // Skip patrol when attacking or in attack cooldown
-        }
-
-        // Patrol behavior when no player is in attack range
-        Patrol();
+        UpdateAnimation();
     }
 
     /// <summary>
-    /// Attack the target player: show sword effect, deal damage, and set cooldown
+    /// Detects player within detection range using OverlapCircle on Player layer.
     /// </summary>
-    /// <param name="target">Player to attack</param>
-    private void Attack(Component target)
+    private void DetectPlayer()
     {
-        isAttacking = true;
-        lastAttackTime = Time.time;
-
-        // Show sword effect with yellow color
-        if (swordEffect != null)
-        {
-            GameObject effect = Instantiate(swordEffect, transform.position, Quaternion.identity);
-            effect.GetComponent<SpriteRenderer>().color = Color.yellow;
-            Destroy(effect, 0.3f);
-        }
-
-        // Deal damage depending on player type
-        if (target is Player1Controller p1) p1.TakeDamage(attackDamage);
-        if (target is Player2Controller p2) p2.TakeDamage(attackDamage);
-
-        // Reset attack flag shortly after attack animation
-        Invoke(nameof(ResetAttack), 0.2f);
+        Collider2D hit = Physics2D.OverlapCircle(transform.position, enemyData.detectionRange, LayerMask.GetMask("Player"));
+        detectedPlayer = hit != null ? hit.transform : null;
     }
 
     /// <summary>
-    /// Reset attack state to allow next attack
-    /// </summary>
-    private void ResetAttack()
-    {
-        isAttacking = false;
-    }
-
-    /// <summary>
-    /// Patrol horizontally back and forth within patrolRange around spawn point
+    /// Moves enemy left/right within patrol range around start position.
     /// </summary>
     private void Patrol()
     {
-        float distanceFromStart = Mathf.Abs(transform.position.x - patrolStartX);
+        float patrolDistance = enemyData.patrolRange;
+        float speed = enemyData.moveSpeed;
 
-        // Reverse direction at patrol limits
-        if (distanceFromStart >= patrolRange)
+        if (movingRight)
         {
-            patrolDirection *= -1;
+            transform.Translate(Vector2.right * speed * Time.deltaTime);
+            if (transform.position.x >= startPos.x + patrolDistance)
+                movingRight = false;
         }
-
-        // Apply horizontal movement using Rigidbody2D velocity
-        Vector2 velocity = rb.linearVelocity;
-        velocity.x = patrolDirection * moveSpeed;
-        rb.linearVelocity = velocity;
-
-        // Flip sprite to face movement direction
-        Vector3 scale = transform.localScale;
-        scale.x = Mathf.Abs(scale.x) * patrolDirection;
-        transform.localScale = scale;
-    }
-
-    /// <summary>
-    /// Called when enemy takes damage: reduce health and check for death
-    /// </summary>
-    /// <param name="damage">Damage amount</param>
-    public void TakeDamage(int damage)
-    {
-        if (!isAlive) return;
-
-        health = Mathf.Max(0, health - damage);
-
-        if (health <= 0)
+        else
         {
-            Die();
+            transform.Translate(Vector2.left * speed * Time.deltaTime);
+            if (transform.position.x <= startPos.x - patrolDistance)
+                movingRight = true;
         }
     }
 
     /// <summary>
-    /// Handle enemy death: disable movement, change color, and notify audio manager
+    /// Moves enemy toward the detected player.
     /// </summary>
-    private void Die()
+    private void ChasePlayer()
     {
-        isAlive = false;
+        if (detectedPlayer == null) return;
 
-        if (spriteRenderer != null)
-            spriteRenderer.color = Color.gray;
+        float speed = enemyData.moveSpeed * 1.2f; // Slightly faster chasing speed
 
-        rb.linearVelocity = Vector2.zero;
-
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.OnEnemyDeath();
+        Vector2 direction = (detectedPlayer.position - transform.position).normalized;
+        transform.Translate(direction * speed * Time.deltaTime);
     }
 
     /// <summary>
-    /// Update enemy sprite color based on current health percentage for visual feedback
+    /// Performs an attack on the detected player, triggers attack animation and resets cooldown.
     /// </summary>
-    private void UpdateVisuals()
+    private void Attack()
     {
-        if (!isAlive) return;
+        attackCooldownTimer = enemyData.attackCooldown;
+        animator.SetTrigger("Attack");
 
-        float healthPercent = (float)health / maxHealth;
-        Color color = Color.Lerp(Color.black, enemyColor, healthPercent);
-
-        if (spriteRenderer != null)
-            spriteRenderer.color = color;
-    }
-
-    // Public accessor methods for GameManager and player interactions
-    public bool IsAlive() => isAlive;
-    public int GetHealth() => health;
-    public int GetMaxHealth() => maxHealth;
-    public bool IsAttacking() => isAttacking;
-
-    /// <summary>
-    /// Handle collision with players: deal contact damage if not currently attacking
-    /// </summary>
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        Player1Controller p1 = collision.gameObject.GetComponent<Player1Controller>();
-        Player2Controller p2 = collision.gameObject.GetComponent<Player2Controller>();
-
-        if (p1 != null && !isAttacking)
+        // Damage player on attack (assuming player has health interface IPlayerController)
+        var playerHealth = detectedPlayer.GetComponent<IPlayerController>();
+        if (playerHealth != null)
         {
-            p1.TakeDamage(5);
-        }
-        else if (p2 != null && !isAttacking)
-        {
-            p2.TakeDamage(5);
+            playerHealth.TakeDamage(enemyData.attackDamage);
         }
     }
 
     /// <summary>
-    /// Draw debug gizmos in editor showing attack and patrol ranges
+    /// Decrements attack cooldown timer.
     /// </summary>
+    private void HandleAttackCooldown()
+    {
+        if (attackCooldownTimer > 0)
+            attackCooldownTimer -= Time.deltaTime;
+    }
+
+    /// <summary>
+    /// Updates animator parameters for movement and facing direction.
+    /// </summary>
+    private void UpdateAnimation()
+    {
+        bool isMoving = false;
+
+        if (detectedPlayer != null)
+        {
+            isMoving = Vector2.Distance(transform.position, detectedPlayer.position) > enemyData.attackRange;
+            FaceTarget(detectedPlayer.position);
+        }
+        else
+        {
+            // During patrol, check movingRight for facing
+            isMoving = true;
+            spriteRenderer.flipX = !movingRight;
+        }
+
+        animator.SetBool("IsMoving", isMoving);
+    }
+
+    /// <summary>
+    /// Flips sprite to face the target position.
+    /// </summary>
+    /// <param name="targetPos">Target world position</param>
+    private void FaceTarget(Vector3 targetPos)
+    {
+        if (targetPos.x < transform.position.x)
+            spriteRenderer.flipX = true;
+        else
+            spriteRenderer.flipX = false;
+    }
+
+    /// <summary>
+    /// Called externally when enemy takes damage.
+    /// Plays hit animation, reduces health, and dies if health <= 0.
+    /// </summary>
+    /// <param name="damage">Amount of damage taken</param>
+    /// <param name="attacker">The entity that dealt damage</param>
+    public void TakeDamage(int damage, object attacker)
+    {
+        if (isDead) return;
+
+        currentHealth -= damage;
+        Debug.Log($"{enemyData.enemyName} took {damage} damage. Remaining HP: {currentHealth}");
+        animator.SetTrigger("Hit");
+
+        if (currentHealth <= 0)
+            Die(attacker);
+    }
+
+    /// <summary>
+    /// Handles death logic: triggers death animation, disables colliders, and notifies GameManager.
+    /// </summary>
+    private void Die(object killer)
+    {
+        isDead = true;
+        Debug.Log($"{enemyData.enemyName} was killed.");
+
+        animator.SetBool("IsDead", true);
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null) col.enabled = false;
+
+        // Notify GameManager about the kill for scoring
+        GameManager.Instance.AddEnemyKill(killer);
+
+        // Disable or destroy enemy after delay (or use pooling)
+        Destroy(gameObject, 2f);
+    }
+
+    /// <summary>
+    /// Returns whether the enemy is alive.
+    /// </summary>
+    public bool IsAlive()
+    {
+        return !isDead && currentHealth > 0;
+    }
+
+    /// <summary>
+    /// Assigns new EnemyTypeData and initializes the enemy with it.
+    /// </summary>
+    public void SetEnemyTypeData(EnemyTypeData data)
+    {
+        enemyData = data;
+        InitializeEnemy();
+    }
+
+    // Optional: visualize detection and attack ranges in editor
     private void OnDrawGizmosSelected()
     {
-        // Draw attack range in red
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        if (enemyData == null) return;
 
-        // Draw patrol range as blue horizontal line
-        Gizmos.color = Color.blue;
-        Vector3 patrolStart = new Vector3(patrolStartX != 0 ? patrolStartX : transform.position.x, transform.position.y, transform.position.z);
-        Gizmos.DrawLine(patrolStart + Vector3.left * patrolRange, patrolStart + Vector3.right * patrolRange);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, enemyData.detectionRange);
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, enemyData.attackRange);
     }
 }
