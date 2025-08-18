@@ -49,6 +49,7 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// Spawns one enemy at each spawn point, assigning a random type from the enemyTypes array.
+    /// Ensures enemy prefab and type are valid before initializing.
     /// </summary>
     public void SpawnEnemies()
     {
@@ -64,10 +65,33 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        if (enemyPrefab == null)
+        {
+            Debug.LogError("GameManager: Enemy prefab is not assigned!");
+            return;
+        }
+
         foreach (Transform spawn in spawnPoints)
         {
+            // Choose a random type for this enemy
             EnemyTypeData chosenType = enemyTypes[Random.Range(0, enemyTypes.Length)];
+
+            if (chosenType == null)
+            {
+                Debug.LogWarning("GameManager: Chosen EnemyTypeData is null. Skipping spawn.");
+                continue;
+            }
+
+            // Instantiate enemy
             EnemyAI newEnemy = Instantiate(enemyPrefab, spawn.position, Quaternion.identity);
+
+            if (newEnemy == null)
+            {
+                Debug.LogError("GameManager: Failed to instantiate enemy prefab.");
+                continue;
+            }
+
+            // Assign type data safely
             newEnemy.SetEnemyTypeData(chosenType);
         }
     }

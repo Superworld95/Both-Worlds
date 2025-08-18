@@ -22,12 +22,18 @@ public class EnemyAI : MonoBehaviour
 
     private Transform detectedPlayer; // Reference to detected player
 
-    private void Start()
+    private void Awake()
     {
+        // Initialize components early so they are ready for InitializeEnemy()
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
+    }
 
-        InitializeEnemy();
+    private void Start()
+    {
+        // Only initialize if enemyData was assigned in Inspector
+        if (enemyData != null)
+            InitializeEnemy();
     }
 
     /// <summary>
@@ -35,6 +41,12 @@ public class EnemyAI : MonoBehaviour
     /// </summary>
     private void InitializeEnemy()
     {
+        // Ensure components exist
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        if (animator == null)
+            animator = GetComponent<Animator>();
+
         if (enemyData != null)
         {
             currentHealth = enemyData.maxHealth;
