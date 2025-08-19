@@ -1,4 +1,4 @@
-using UnityEngine;
+/*using UnityEngine;
 using System.Collections;
 
 /// <summary>
@@ -167,4 +167,4 @@ public class CameraController : MonoBehaviour
         }
         transform.position = originalPosition;
     }
-}
+}*/

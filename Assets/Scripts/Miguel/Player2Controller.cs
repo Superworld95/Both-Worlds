@@ -1,316 +1,220 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 /// <summary>
-/// Player 2 controller handling movement, jumping, attacking with sword, and health management.
-/// Uses Unity's New Input System with Arrow keys and Enter for attack.
+/// Player 2 controller handling movement, traversal mechanics (dash, wall climbing),
+/// multi-jump via power-up, attacks (if added), and health system.
+/// Uses Arrow Keys + Enter controls through Unity's New Input System.
 /// </summary>
 public class Player2Controller : MonoBehaviour, IPlayerController
 {
     [Header("Player Settings")]
-    public string playerName = "Player 2"; // Display name for UI and GameManager
-    public int maxHealth = 100;             // Maximum health value
-    public float moveSpeed = 5f;            // Horizontal movement speed
-    public float jumpForce = 12f;           // Upward force applied on jump
+    public string playerName = "Player 2";
+    public int maxHealth = 100;
+    private int currentHealth;
 
-    [Header("Attack Settings")]
-    public int attackDamage = 20;           // Damage dealt per attack
-    public float attackCooldown = 0.5f;     // Minimum time between attacks in seconds
-    public Transform attackPoint;           // Position from where attack range is calculated
-    public float attackRange = 1.0f;        // Radius of the attack hit area
-    public LayerMask enemyLayer;            // LayerMask to detect enemies in attack range
+    [Header("Movement")]
+    public float moveSpeed = 8f;
+    public float jumpForce = 12f;
+    public int maxJumps = 1; // single jump by default
+    private int jumpsUsed = 0;
+    private bool jumpConsumed;
+
+    [Header("Dash Settings")]
+    public float dashForce = 20f;
+    public float dashDuration = 0.2f;
+    public float dashCooldown = 1f;
+    private bool canDash = true;
+    private bool isDashing = false;
+
+    [Header("Wall Mechanics")]
+    public Transform wallCheck;
+    public float wallCheckRadius = 0.2f;
+    public LayerMask wallLayer;
+    public float wallSlideSpeed = 2f;
+    public Vector2 wallJumpPower = new Vector2(12f, 16f);
+    private bool isTouchingWall;
+    private bool isWallSliding;
+    private bool isWallJumping;
+    private float wallJumpDirection;
+
+    [Header("Ground Check")]
+    public Transform groundCheck;
+    public float groundCheckRadius = 0.2f;
+    public LayerMask groundLayer;
+    private bool isGrounded;
+
+    [Header("Input")]
+    private Vector2 moveInput;
+    private bool jumpPressed = false;
+
+    [Header("State")]
+    public bool IsAlive { get; private set; } = true;
 
     private Rigidbody2D rb;
-    private Animator animator;
-    private SpriteRenderer spriteRenderer;
 
-    private int currentHealth;
-    private int kills = 0;
-    private bool isGrounded = false;
-    private float lastAttackTime = 0f;
-
-    private Vector2 moveInput;
-
-    // Double jump support
-    private bool doubleJumpEnabled = false;
-    private bool canDoubleJump = false;
-
-    // Speed boost support
-    private float speedBoostMultiplier = 1f;
-    private float speedBoostTimer = 0f;
-
-    // Attack boost support
-    private float attackBoostMultiplier = 1f;
-    private float attackBoostTimer = 0f;
-
-    /// <summary>
-    /// Initialization of components and starting health.
-    /// </summary>
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
-
         currentHealth = maxHealth;
     }
 
-    /// <summary>
-    /// Called every frame to update movement, animation, and powerup timers.
-    /// </summary>
     private void Update()
     {
-        HandleMovement();
-        HandleAnimations();
-        UpdatePowerupTimers();
+        if (!IsAlive) return;
+
+        CheckGround();
+        CheckWall();
     }
 
-    #region Movement and Input Handling
+    private void FixedUpdate()
+    {
+        if (!IsAlive || isDashing) return;
 
-    /// <summary>
-    /// Called by input system when Move action is triggered.
-    /// Stores movement input vector.
-    /// </summary>
+        HandleMovement();
+        HandleJump();
+        HandleWallSlide();
+    }
+
+    // ----------------- Input -----------------
     public void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
     }
 
-    /// <summary>
-    /// Called by input system when Jump action is triggered.
-    /// Applies vertical velocity if grounded or double jump if enabled.
-    /// </summary>
     public void OnJump(InputAction.CallbackContext context)
     {
-        if (context.performed)
+        if (!IsAlive) return;
+
+        if (context.started)
         {
-            if (isGrounded)
-            {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-                isGrounded = false;
-                canDoubleJump = doubleJumpEnabled;
-            }
-            else if (canDoubleJump)
-            {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-                canDoubleJump = false;
-            }
+            jumpPressed = true;
+            jumpConsumed = false;
         }
+
+        if (context.canceled)
+            jumpConsumed = true;
     }
 
-    /// <summary>
-    /// Called by input system when Attack action is triggered.
-    /// Starts attack if cooldown allows.
-    /// </summary>
-    public void OnAttack(InputAction.CallbackContext context)
+    public void OnDash(InputAction.CallbackContext context)
     {
-        if (context.performed && Time.time - lastAttackTime >= attackCooldown)
-        {
-            Attack();
-            lastAttackTime = Time.time;
-        }
+        if (!IsAlive) return;
+
+        if (context.started && canDash)
+            StartCoroutine(Dash());
     }
 
-    /// <summary>
-    /// Applies horizontal movement velocity and flips sprite accordingly.
-    /// </summary>
+    // ----------------- Movement -----------------
     private void HandleMovement()
     {
-        float horizontal = moveInput.x;
-        float currentSpeed = moveSpeed * speedBoostMultiplier;
-        rb.linearVelocity = new Vector2(horizontal * currentSpeed, rb.linearVelocity.y);
-
-        if (horizontal > 0.1f)
-            spriteRenderer.flipX = false;
-        else if (horizontal < -0.1f)
-            spriteRenderer.flipX = true;
+        if (!isWallJumping)
+            rb.linearVelocity = new Vector2(moveInput.x * moveSpeed, rb.linearVelocity.y);
     }
 
-    /// <summary>
-    /// Updates animator parameters for speed and grounded state.
-    /// </summary>
-    private void HandleAnimations()
+    private void HandleJump()
     {
-        animator.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
-        animator.SetBool("IsGrounded", isGrounded);
-    }
-
-    /// <summary>
-    /// Updates powerup timers for speed and attack boosts and resets multipliers when expired.
-    /// </summary>
-    private void UpdatePowerupTimers()
-    {
-        if (speedBoostTimer > 0)
+        if (jumpPressed && !jumpConsumed && jumpsUsed < maxJumps)
         {
-            speedBoostTimer -= Time.deltaTime;
-            if (speedBoostTimer <= 0)
-            {
-                speedBoostMultiplier = 1f;
-            }
-        }
-
-        if (attackBoostTimer > 0)
-        {
-            attackBoostTimer -= Time.deltaTime;
-            if (attackBoostTimer <= 0)
-            {
-                attackBoostMultiplier = 1f;
-            }
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            jumpsUsed++;
+            jumpConsumed = true;
+            jumpPressed = false;
         }
     }
 
-    /// <summary>
-    /// Triggers attack animation and applies damage to enemies in range, factoring attack boost.
-    /// </summary>
-    private void Attack()
+    private void HandleWallSlide()
     {
-        animator.SetTrigger("Attack");
+        if (isWallSliding)
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, Mathf.Clamp(rb.linearVelocity.y, -wallSlideSpeed, float.MaxValue));
+    }
 
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
-
-        foreach (Collider2D enemyCollider in hitEnemies)
+    private void CheckGround()
+    {
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        if (isGrounded)
         {
-            EnemyAI enemy = enemyCollider.GetComponent<EnemyAI>();
-            if (enemy != null && enemy.IsAlive())
-            {
-                int totalDamage = Mathf.RoundToInt(attackDamage * attackBoostMultiplier);
-                enemy.TakeDamage(totalDamage, this);
-            }
+            jumpsUsed = 0;
+            jumpConsumed = false;
         }
     }
 
-    /// <summary>
-    /// Draws the attack range sphere in the editor for debugging.
-    /// </summary>
-    private void OnDrawGizmosSelected()
+    private void CheckWall()
     {
-        if (attackPoint != null)
-        {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
-        }
+        isTouchingWall = Physics2D.OverlapCircle(wallCheck.position, wallCheckRadius, wallLayer);
+        isWallSliding = isTouchingWall && !isGrounded && rb.linearVelocity.y < 0;
+        if (isWallSliding)
+            wallJumpDirection = -Mathf.Sign(transform.localScale.x);
     }
 
-    /// <summary>
-    /// Checks collision with ground to update grounded status.
-    /// </summary>
-    private void OnCollisionEnter2D(Collision2D collision)
+    private IEnumerator Dash()
     {
-        if (collision.gameObject.CompareTag("Ground"))
-        {
-            isGrounded = true;
-        }
+        canDash = false;
+        isDashing = true;
+
+        float dashDir = moveInput.x != 0 ? moveInput.x : transform.localScale.x;
+        rb.linearVelocity = new Vector2(dashDir * dashForce, 0f);
+
+        yield return new WaitForSeconds(dashDuration);
+        isDashing = false;
+
+        yield return new WaitForSeconds(dashCooldown);
+        canDash = true;
     }
 
-    #endregion
+    private IEnumerator WallJump()
+    {
+        isWallJumping = true;
+        rb.linearVelocity = new Vector2(0, 0);
+        rb.AddForce(new Vector2(wallJumpDirection * wallJumpPower.x, wallJumpPower.y), ForceMode2D.Impulse);
 
-    #region Health and Damage Management
+        yield return new WaitForSeconds(0.2f);
+        isWallJumping = false;
+        jumpsUsed = 0;
+    }
 
-    /// <summary>
-    /// Applies damage to player health.
-    /// </summary>
+    // ----------------- Health -----------------
     public void TakeDamage(int damage)
     {
-        currentHealth -= damage;
-        if (currentHealth < 0) currentHealth = 0;
+        if (!IsAlive) return;
 
-        if (currentHealth == 0)
+        currentHealth -= damage;
+        if (currentHealth <= 0)
         {
+            currentHealth = 0;
             Die();
         }
     }
 
-    /// <summary>
-    /// Handles player death state.
-    /// </summary>
     private void Die()
     {
-        Debug.Log($"{playerName} died!");
-        enabled = false;
+        IsAlive = false;
+        rb.linearVelocity = Vector2.zero;
     }
 
-    /// <summary>
-    /// Returns if player is alive.
-    /// </summary>
-    public bool IsAlive()
-    {
-        return currentHealth > 0;
-    }
-
-    /// <summary>
-    /// Gets current health value.
-    /// </summary>
     public int GetHealth() => currentHealth;
 
-    #endregion
+    // ----------------- IPlayerController -----------------
+    public void EnableDoubleJump(bool enabled) => maxJumps = enabled ? 2 : 1;
 
-    #region Kill Tracking
+    public void SetSpeedBoost(float multiplier, float duration) => StartCoroutine(SpeedBoost(multiplier, duration));
 
-    /// <summary>
-    /// Increment kill count.
-    /// </summary>
-    public void AddKill()
+    private IEnumerator SpeedBoost(float multiplier, float duration)
     {
-        kills++;
+        float originalSpeed = moveSpeed;
+        moveSpeed *= multiplier;
+        yield return new WaitForSeconds(duration);
+        moveSpeed = originalSpeed;
     }
 
-    /// <summary>
-    /// Returns kill count.
-    /// </summary>
-    public int GetKills()
-    {
-        return kills;
-    }
-
-    /// <summary>
-    /// Returns player display name.
-    /// </summary>
-    public string GetPlayerName()
-    {
-        return playerName;
-    }
-
-    /// <summary>
-    /// Resets health, kills and re-enables player.
-    /// </summary>
-    public void ResetPlayer()
-    {
-        currentHealth = maxHealth;
-        kills = 0;
-        enabled = true;
-        //Resets player position to start position (assumes initial position stored)
-        transform.position = Vector3.zero; // Change Vector3.zero to desired start position if needed
-    }
-
-    #endregion
-
-    #region IPlayerController Implementation
-
-    public void EnableDoubleJump(bool enabled)
-    {
-        doubleJumpEnabled = enabled;
-        if (!enabled)
-            canDoubleJump = false;
-    }
-
-    public void SetSpeedBoost(float multiplier, float duration)
-    {
-        speedBoostMultiplier = multiplier;
-        speedBoostTimer = duration;
-    }
-
-    public void SetAttackBoost(float multiplier, float duration)
-    {
-        attackBoostMultiplier = multiplier;
-        attackBoostTimer = duration;
-    }
+    public void SetAttackBoost(float multiplier, float duration) { /* implement if attack logic exists */ }
 
     public void Heal(int amount)
     {
+        if (!IsAlive) return;
         currentHealth += amount;
-        if (currentHealth > maxHealth)
-            currentHealth = maxHealth;
+        if (currentHealth > maxHealth) currentHealth = maxHealth;
     }
 
-    #endregion
+    public string GetPlayerName() => playerName;
 }

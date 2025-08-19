@@ -203,7 +203,7 @@ public class EnemyAI : MonoBehaviour
 
         currentHealth -= damage;
         Debug.Log($"{enemyData.enemyName} took {damage} damage. Remaining HP: {currentHealth}");
-        animator.SetTrigger("Hit");
+        animator.SetTrigger("Injured");
 
         if (currentHealth <= 0)
             Die(attacker);
