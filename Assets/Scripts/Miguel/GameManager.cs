@@ -9,11 +9,23 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
 
     [Header("Enemy Spawning")]
-    [Tooltip("Prefab that has the EnemyAI script attached.")]
-    public EnemyAI enemyPrefab;
+    [Tooltip("Prefab for the basic enemy (with EnemyAI script attached).")]
+    public EnemyAI basicEnemyPrefab;
 
-    [Tooltip("All possible enemy types stored as ScriptableObjects.")]
-    public EnemyTypeData[] enemyTypes;
+    [Tooltip("Data for the basic enemy type.")]
+    public EnemyTypeData basicEnemyData;
+
+    [Tooltip("Prefab for the fast enemy (with EnemyAI script attached).")]
+    public EnemyAI fastEnemyPrefab;
+
+    [Tooltip("Data for the fast enemy type.")]
+    public EnemyTypeData fastEnemyData;
+
+    [Tooltip("Prefab for the heavy enemy (with EnemyAI script attached).")]
+    public EnemyAI heavyEnemyPrefab;
+
+    [Tooltip("Data for the heavy enemy type.")]
+    public EnemyTypeData heavyEnemyData;
 
     [Tooltip("All spawn points where enemies can be placed.")]
     public Transform[] spawnPoints;
@@ -48,8 +60,8 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Spawns one enemy at each spawn point, assigning a random type from the enemyTypes array.
-    /// Ensures enemy prefab and type are valid before initializing.
+    /// Spawns enemies at each spawn point.
+    /// Chooses between basic, fast, and heavy enemies, and assigns matching type data.
     /// </summary>
     public void SpawnEnemies()
     {
@@ -59,31 +71,50 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (enemyTypes == null || enemyTypes.Length == 0)
+        if (basicEnemyPrefab == null || fastEnemyPrefab == null || heavyEnemyPrefab == null)
         {
-            Debug.LogWarning("GameManager: No enemy types assigned!");
+            Debug.LogError("GameManager: One or more enemy prefabs are not assigned!");
             return;
         }
 
-        if (enemyPrefab == null)
+        if (basicEnemyData == null || fastEnemyData == null || heavyEnemyData == null)
         {
-            Debug.LogError("GameManager: Enemy prefab is not assigned!");
+            Debug.LogError("GameManager: One or more enemy type data objects are not assigned!");
             return;
         }
 
         foreach (Transform spawn in spawnPoints)
         {
-            // Choose a random type for this enemy
-            EnemyTypeData chosenType = enemyTypes[Random.Range(0, enemyTypes.Length)];
+            // Randomly pick which enemy type to spawn
+            int choice = Random.Range(0, 3); // 0 = basic, 1 = fast, 2 = heavy
 
-            if (chosenType == null)
+            EnemyAI chosenPrefab = null;
+            EnemyTypeData chosenData = null;
+
+            switch (choice)
             {
-                Debug.LogWarning("GameManager: Chosen EnemyTypeData is null. Skipping spawn.");
+                case 0:
+                    chosenPrefab = basicEnemyPrefab;
+                    chosenData = basicEnemyData;
+                    break;
+                case 1:
+                    chosenPrefab = fastEnemyPrefab;
+                    chosenData = fastEnemyData;
+                    break;
+                case 2:
+                    chosenPrefab = heavyEnemyPrefab;
+                    chosenData = heavyEnemyData;
+                    break;
+            }
+
+            if (chosenPrefab == null || chosenData == null)
+            {
+                Debug.LogWarning("GameManager: Missing prefab or type data. Skipping spawn.");
                 continue;
             }
 
             // Instantiate enemy
-            EnemyAI newEnemy = Instantiate(enemyPrefab, spawn.position, Quaternion.identity);
+            EnemyAI newEnemy = Instantiate(chosenPrefab, spawn.position, Quaternion.identity);
 
             if (newEnemy == null)
             {
@@ -91,8 +122,8 @@ public class GameManager : MonoBehaviour
                 continue;
             }
 
-            // Assign type data safely
-            newEnemy.SetEnemyTypeData(chosenType);
+            // Assign the correct type data
+            newEnemy.SetEnemyTypeData(chosenData);
         }
     }
 
